@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html
+  itemscope
+  itemtype="http://schema.org/WebPage"
+  lang="en"
+  class="color-toggle-hidden"
+  
+>
+  <head>
+    <meta charset="UTF-8" />
+<meta name="referrer" content="no-referrer" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="generator" content="Hugo 0.101.0" />
+  <meta name="description" content="In this post, I’m going to walk you through how to set up an environment that can be used for testing what’s been called these days “Cloud Native Data Centers”, including underlay/overlay protocols, network automation scripts, zero-touch provisioning, monitoring, observability amongst many other things.
+In order to build this, we’re going to use Vagrant combined with Libvirt, which uses KVM as the hypervisor. I’ve chosen Libvirt over Virtualbox due to its better scalability and portability beyond running some small tests in your home PC1. You don’t normally see Virtualbox in Linux servers, but you do see KVM.
+The great think about Vagrant is that it uses text files to describe the entire network topology, this allows us to use git for version control and to automate the creation of the test environment - no need to waste time pointing and clicking in a GUI.
+There’s a bit of a learning curve understanding the text file that Vagrant uses to describe the topology (called Vagrantfile). Hopefully, after you read this blog post, you will be able to create you own topologies without any issues." />
+    <meta name="author" content="Ismael" />
+
+    <title>Getting started with Network Automation using Vagrant &#43; Libvirt | Ismael Serghini&#39;s Blog</title>
+
+    <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg" />
+<link
+  rel="icon"
+  type="image/png"
+  sizes="32x32"
+  href="/favicon/favicon-32x32.png"
+/>
+<link
+  rel="icon"
+  type="image/png"
+  sizes="16x16"
+  href="/favicon/favicon-16x16.png"
+/>
+
+    
+
+    
+  <meta
+    property="og:title"
+    content="Getting started with Network Automation using Vagrant + Libvirt"
+  />
+  <meta property="og:site_name" content="Ismael Serghini's Blog" />
+  <meta property="og:description" content="In this post, I’m going to walk you through how to set up an environment that can be used for testing what’s been called these days “Cloud Native Data Centers”, including underlay/overlay protocols, network automation scripts, zero-touch provisioning, monitoring, observability amongst many other things.
+In order to build this, we’re going to use Vagrant combined with Libvirt, which uses KVM as the hypervisor. I’ve chosen Libvirt over Virtualbox due to its better scalability and portability beyond running some small tests in your home PC1. You don’t normally see Virtualbox in Linux servers, but you do see KVM.
+The great think about Vagrant is that it uses text files to describe the entire network topology, this allows us to use git for version control and to automate the creation of the test environment - no need to waste time pointing and clicking in a GUI.
+There’s a bit of a learning curve understanding the text file that Vagrant uses to describe the topology (called Vagrantfile). Hopefully, after you read this blog post, you will be able to create you own topologies without any issues." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/" />
+
+<meta property="article:section" content="Posts" />
+    <meta
+      property="article:published_time"
+      content="2022-07-20T00:00:00+00:00"
+    />
+    <meta
+      property="article:modified_time"
+      content="2022-07-20T00:00:00+00:00"
+    />
+
+
+  <meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Getting started with Network Automation using Vagrant + Libvirt" />
+  <meta name="twitter:description" content="In this post, I’m going to walk you through how to set up an environment that can be used for testing what’s been called these days “Cloud Native Data Centers”, including underlay/overlay protocols, network automation scripts, zero-touch provisioning, monitoring, observability amongst many other things.
+In order to build this, we’re going to use Vagrant combined with Libvirt, which uses KVM as the hypervisor. I’ve chosen Libvirt over Virtualbox due to its better scalability and portability beyond running some small tests in your home PC1. You don’t normally see Virtualbox in Linux servers, but you do see KVM.
+The great think about Vagrant is that it uses text files to describe the entire network topology, this allows us to use git for version control and to automate the creation of the test environment - no need to waste time pointing and clicking in a GUI.
+There’s a bit of a learning curve understanding the text file that Vagrant uses to describe the topology (called Vagrantfile). Hopefully, after you read this blog post, you will be able to create you own topologies without any issues." />
+
+<script type="application/ld+json">
+  {
+      "@context": "http://schema.org",
+      "@type": "BlogPosting",
+      "articleSection": "Posts",
+      "name": "Getting started with Network Automation using Vagrant + Libvirt",
+      "url" : "https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/",
+      "headline": "Getting started with Network Automation using Vagrant + Libvirt",
+      "description": "In this post, I’m going to walk you through how to set up an environment that can be used for testing what’s been called these days “Cloud Native Data Centers”, including underlay\/overlay protocols, network automation scripts, zero-touch provisioning, monitoring, observability amongst many other things.\nIn order to build this, we’re going to use Vagrant combined with Libvirt, which uses KVM as the hypervisor. I’ve chosen Libvirt over Virtualbox due to its better scalability and portability beyond running some small tests in your home PC1. You don’t normally see Virtualbox in Linux servers, but you do see KVM.\nThe great think about Vagrant is that it uses text files to describe the entire network topology, this allows us to use git for version control and to automate the creation of the test environment - no need to waste time pointing and clicking in a GUI.\nThere’s a bit of a learning curve understanding the text file that Vagrant uses to describe the topology (called Vagrantfile). Hopefully, after you read this blog post, you will be able to create you own topologies without any issues.",
+      "wordCount" : "4057",
+      "inLanguage": "en",
+      "isFamilyFriendly": "true",
+      "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": "https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/"
+      },
+      "author" : [
+          {
+              "@type": "Person",
+              "name": "Ismael"
+          }
+      ],
+      "copyrightHolder" : "Ismael Serghini\u0027s Blog",
+      "copyrightYear" : "2022",
+      "dateCreated": "2022-07-20T00:00:00.00Z",
+      "datePublished": "2022-07-20T00:00:00.00Z",
+      "dateModified": "2022-07-20T00:00:00.00Z",
+      "publisher":{
+          "@type":"Organization",
+          "name": "Ismael Serghini's Blog",
+          "url": "https://iserghini.github.io/",
+          "logo": {
+              "@type": "ImageObject",
+              "url": "https://iserghini.github.io/logo-1.svg",
+              "width":"32",
+              "height":"32"
+          }
+      }
+  }
+  </script>
+
+
+    <script src="/js/main-76d70e50.bundle.min.js"></script>
+
+<link
+  rel="preload"
+  as="font"
+  href="/fonts/Metropolis.woff2"
+  type="font/woff2"
+  crossorigin="anonymous"
+/>
+<link
+  rel="preload"
+  as="font"
+  href="/fonts/LiberationSans.woff2"
+  type="font/woff2"
+  crossorigin="anonymous"
+/>
+<link
+  rel="preload"
+  as="font"
+  href="/fonts/GeekblogIcons.woff2"
+  type="font/woff2"
+  crossorigin="anonymous"
+/>
+
+<link
+  rel="preload"
+  href="/main-8bc36ead.min.css"
+  as="style"
+/>
+<link
+  rel="stylesheet"
+  href="/main-8bc36ead.min.css"
+  media="all"
+/>
+
+<link
+  rel="preload"
+  href="/mobile-08d9c9f0.min.css"
+  as="style"
+/>
+<link
+  rel="stylesheet"
+  href="/mobile-08d9c9f0.min.css"
+  media="screen and (max-width: 45rem)"
+/>
+
+<link
+  rel="preload"
+  href="/print-8a905a2e.min.css"
+  as="style"
+/>
+<link
+  rel="stylesheet"
+  href="/print-8a905a2e.min.css"
+  media="print"
+/>
+
+<link
+  rel="preload"
+  href="/custom.css"
+  as="style"
+/>
+<link
+  rel="stylesheet"
+  href="/custom.css"
+  media="all"
+/>
+  <link href="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/" rel="canonical" type="text/html" />
+    <link href="https://iserghini.github.io/feed.xml" rel="alternate" type="application/atom+xml" title="Ismael Serghini's Blog Atom Feed" />
+
+<!-- Made with Geekblog theme https://github.com/thegeeklab/hugo-geekblog -->
+
+    
+
+  </head>
+
+  <body>
+    
+  <!-- geekblog include: sprites/geekblog.svg -->
+  <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_arrow_back" xmlns="http://www.w3.org/2000/svg"><path d="M31.999 14.035v3.93H7.673l11.134 11.228L16 32 .001 16.001 16 .002l2.807 2.807L7.673 14.037h24.326z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_arrow_left" xmlns="http://www.w3.org/2000/svg"><path d="M7.954 17.965v5.988L.001 16l7.953-7.953v5.988H32v3.93H7.954z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_arrow_right" xmlns="http://www.w3.org/2000/svg"><path d="M24.046 14.035V8.047L31.999 16l-7.953 7.953v-5.988H0v-3.93h24.046z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_bitbucket" xmlns="http://www.w3.org/2000/svg"><path d="M15.905 13.355c.189 1.444-1.564 2.578-2.784 1.839-1.375-.602-1.375-2.784-.034-3.403 1.151-.705 2.818.223 2.818 1.564zm1.907-.361c-.309-2.44-3.076-4.056-5.328-3.042-1.426.636-2.389 2.148-2.32 3.747.086 2.097 2.08 3.815 4.176 3.626s3.729-2.234 3.472-4.331zm4.108-9.315c-.756-.997-2.045-1.169-3.179-1.358-3.214-.516-6.513-.533-9.727.034-1.066.172-2.269.361-2.939 1.323 1.1 1.031 2.664 1.186 4.073 1.358 2.544.327 5.156.344 7.699.017 1.426-.172 3.008-.309 4.073-1.375zm.979 17.788c-.481 1.684-.206 3.953-1.994 4.932-3.076 1.701-6.806 1.89-10.191 1.289-1.787-.327-3.884-.894-4.864-2.578-.43-1.65-.705-3.334-.98-5.018l.103-.275.309-.155c5.121 3.386 12.288 3.386 17.427 0 .808.241.206 1.22.189 1.805zM26.01 4.951c-.584 3.764-1.255 7.51-1.908 11.257-.189 1.1-1.255 1.719-2.148 2.183-3.214 1.615-6.96 1.89-10.483 1.512-2.389-.258-4.829-.894-6.771-2.389-.911-.705-.911-1.908-1.083-2.922-.602-3.523-1.289-7.046-1.719-10.604.206-1.547 1.942-2.217 3.231-2.698C6.848.654 8.686.362 10.508.19c3.884-.378 7.854-.241 11.618.859 1.341.395 2.784.945 3.695 2.097.412.533.275 1.203.189 1.805z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_bookmark" xmlns="http://www.w3.org/2000/svg"><path d="M20.357 5.856q1.157 0 2.043.851t.885 2.008v23.284l-10.212-4.357-10.144 4.357V8.715q0-1.157.885-2.008t2.042-.851h14.502zm5.787 18.859V5.856q0-1.157-.851-2.042t-2.008-.885H8.715q0-1.157.885-2.042t2.043-.885h14.502q1.157 0 2.043.885t.885 2.042v23.216z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_brightness_auto" xmlns="http://www.w3.org/2000/svg"><path d="M16.846 18.938h2.382L15.22 7.785h-2.44L8.772 18.938h2.382l.871-2.44h3.95zm7.087-9.062L27.999 14l-4.066 4.124v5.809h-5.809L14 27.999l-4.124-4.066H4.067v-5.809L.001 14l4.066-4.124V4.067h5.809L14 .001l4.124 4.066h5.809v5.809zm-11.385 4.937L14 10.282l1.452 4.531h-2.904z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_brightness_dark" xmlns="http://www.w3.org/2000/svg"><path d="M14 21.435q3.079 0 5.257-2.178T21.435 14t-2.178-5.257T14 6.565q-1.51 0-3.079.697 1.917.871 3.108 2.701T15.22 14t-1.191 4.037-3.108 2.701q1.568.697 3.079.697zm9.933-11.559L27.999 14l-4.066 4.124v5.809h-5.809L14 27.999l-4.124-4.066H4.067v-5.809L.001 14l4.066-4.124V4.067h5.809L14 .001l4.124 4.066h5.809v5.809z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_brightness_light" xmlns="http://www.w3.org/2000/svg"><path d="M14 21.435q3.079 0 5.257-2.178T21.435 14t-2.178-5.257T14 6.565 8.743 8.743 6.565 14t2.178 5.257T14 21.435zm9.933-3.311v5.809h-5.809L14 27.999l-4.124-4.066H4.067v-5.809L.001 14l4.066-4.124V4.067h5.809L14 .001l4.124 4.066h5.809v5.809L27.999 14z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_check" xmlns="http://www.w3.org/2000/svg"><path d="M8.885 20.197L25.759 3.323l2.24 2.24L8.885 24.677 0 15.792l2.24-2.24z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_check_circle_outline" xmlns="http://www.w3.org/2000/svg"><path d="M14 25.239q4.601 0 7.92-3.319T25.239 14 21.92 6.08 14 2.761 6.08 6.08 2.761 14t3.319 7.92T14 25.239zM14 0q5.784 0 9.892 4.108T28 14t-4.108 9.892T14 28t-9.892-4.108T0 14t4.108-9.892T14 0zm6.441 7.822l1.972 1.972-11.239 11.239L4.207 14l1.972-1.972 4.995 4.995z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_clear" xmlns="http://www.w3.org/2000/svg"><path d="M32 3.222L19.222 16 32 28.778l-3.221 3.221-12.778-12.778L3.223 31.999.002 28.778 12.78 16 .002 3.222 3.223.001l12.778 12.778L28.779.001z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_cloud_off" xmlns="http://www.w3.org/2000/svg"><path d="M9.023 10.5H7q-1.914 0-3.281 1.395t-1.367 3.309 1.367 3.281T7 19.852h11.375zM3.5 4.976l1.477-1.477L24.5 23.022l-1.477 1.477-2.352-2.297H6.999q-2.898 0-4.949-2.051t-2.051-4.949q0-2.844 1.969-4.867t4.758-2.133zm19.086 5.578q2.242.164 3.828 1.832T28 16.351q0 3.008-2.461 4.758l-1.695-1.695q1.805-.984 1.805-3.063 0-1.422-1.039-2.461t-2.461-1.039h-1.75v-.602q0-2.68-1.859-4.539t-4.539-1.859q-1.531 0-2.953.711l-1.75-1.695Q11.431 3.5 14.001 3.5q2.953 0 5.496 2.078t3.09 4.977z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_code" xmlns="http://www.w3.org/2000/svg"><path d="M9.917 24.5a1.75 1.75 0 10-3.501.001 1.75 1.75 0 003.501-.001zm0-21a1.75 1.75 0 10-3.501.001A1.75 1.75 0 009.917 3.5zm11.666 2.333a1.75 1.75 0 10-3.501.001 1.75 1.75 0 003.501-.001zm1.75 0a3.502 3.502 0 01-1.75 3.026c-.055 6.581-4.721 8.039-7.82 9.023-2.898.911-3.846 1.349-3.846 3.117v.474a3.502 3.502 0 011.75 3.026c0 1.932-1.568 3.5-3.5 3.5s-3.5-1.568-3.5-3.5c0-1.294.711-2.424 1.75-3.026V6.526A3.502 3.502 0 014.667 3.5c0-1.932 1.568-3.5 3.5-3.5s3.5 1.568 3.5 3.5a3.502 3.502 0 01-1.75 3.026v9.06c.93-.456 1.914-.766 2.807-1.039 3.391-1.075 5.323-1.878 5.359-5.687a3.502 3.502 0 01-1.75-3.026c0-1.932 1.568-3.5 3.5-3.5s3.5 1.568 3.5 3.5z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_contacts" xmlns="http://www.w3.org/2000/svg"><path d="M22.688 22.688v-2q0-1.5-2.281-2.438t-4.406-.938-4.406.938-2.281 2.438v2h13.375zM16 9q-1.25 0-2.125.875T13 12t.875 2.125T16 15t2.125-.875T19 12t-.875-2.125T16 9zm10.688-3.687q1.063 0 1.844.813t.781 1.875v16q0 1.063-.781 1.875t-1.844.813H5.313q-1.063 0-1.844-.813t-.781-1.875v-16q0-1.063.781-1.875t1.844-.813h21.375zM5.313 32v-2.688h21.375V32H5.313zM26.688 0v2.688H5.313V0h21.375z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_copy" xmlns="http://www.w3.org/2000/svg"><path d="M23.502 25.438V7.626H9.562v17.812h13.94zm0-20.315q1.013 0 1.787.745t.774 1.757v17.812q0 1.013-.774 1.787t-1.787.774H9.562q-1.013 0-1.787-.774t-.774-1.787V7.625q0-1.013.774-1.757t1.787-.745h13.94zM19.689 0v2.562H4.438v17.812H1.936V2.562q0-1.013.745-1.787T4.438.001h15.251z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_create" xmlns="http://www.w3.org/2000/svg"><path d="M31.499 7.167l-3.25 3.25-6.666-6.666 3.25-3.25q.5-.5 1.25-.5t1.25.5l4.166 4.166q.5.5.5 1.25t-.5 1.25zM.001 25.333L19.667 5.667l6.666 6.666L6.667 31.999H.001v-6.666z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_dangerous" xmlns="http://www.w3.org/2000/svg"><path d="M21.802 19.833L15.969 14l5.833-5.833-1.969-1.969L14 12.031 8.167 6.198 6.198 8.167 12.031 14l-5.833 5.833 1.969 1.969L14 15.969l5.833 5.833zM19.833 0L28 8.167v11.666L19.833 28H8.167L0 19.833V8.167L8.167 0h11.666z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_date" xmlns="http://www.w3.org/2000/svg"><path d="M27.192 28.844V11.192H4.808v17.652h22.384zm0-25.689q1.277 0 2.253.976t.976 2.253v22.459q0 1.277-.976 2.216t-2.253.939H4.808q-1.352 0-2.291-.901t-.939-2.253V6.385q0-1.277.939-2.253t2.291-.976h1.577V.001h3.23v3.155h12.769V.001h3.23v3.155h1.577zm-3.155 11.267v3.155h-3.23v-3.155h3.23zm-6.46 0v3.155h-3.155v-3.155h3.155zm-6.384 0v3.155h-3.23v-3.155h3.23z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_download" xmlns="http://www.w3.org/2000/svg"><path d="M2.866 28.209h26.269v3.79H2.866v-3.79zm26.268-16.925L16 24.418 2.866 11.284h7.493V.001h11.283v11.283h7.493z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_email" xmlns="http://www.w3.org/2000/svg"><path d="M28.845 9.615v-3.23L16 14.422 3.155 6.385v3.23L16 17.577zm0-6.46q1.277 0 2.216.977T32 6.385v19.23q0 1.277-.939 2.253t-2.216.977H3.155q-1.277 0-2.216-.977T0 25.615V6.385q0-1.277.939-2.253t2.216-.977h25.69z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_error_outline" xmlns="http://www.w3.org/2000/svg"><path d="M14 25.239q4.601 0 7.92-3.319T25.239 14 21.92 6.08 14 2.761 6.08 6.08 2.761 14t3.319 7.92T14 25.239zM14 0q5.784 0 9.892 4.108T28 14t-4.108 9.892T14 28t-9.892-4.108T0 14t4.108-9.892T14 0zm-1.38 6.967h2.761v8.413H12.62V6.967zm0 11.239h2.761v2.826H12.62v-2.826z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_fire" xmlns="http://www.w3.org/2000/svg"><path d="M17.689 21.998q-.32.32-.8.576t-.864.384q-1.152.384-2.272.032t-1.888-.992q-.128-.128-.096-.256t.16-.192q1.216-.384 1.92-1.216t.96-1.792q.192-.896-.064-1.728t-.384-1.728q-.128-.704-.096-1.376t.288-1.312q0-.128.128-.128t.192.064q.384.832.992 1.472t1.28 1.216 1.216 1.248.672 1.568q.064.384.064.704.064.96-.32 1.92t-1.088 1.536zm3.84-10.944q-.768-.704-1.6-1.28t-1.6-1.344q-1.536-1.536-2.016-3.584t.16-4.16q.128-.32-.096-.544t-.544-.096q-.768.32-1.44.768t-1.312.896q-1.984 1.664-3.136 3.936T8.633 10.51t.8 5.088q0 .128.032.256t.032.256q0 .576-.512.832t-1.024-.192q-.128-.192-.192-.32-1.024-1.28-1.376-2.912t-.096-3.232q.064-.384-.288-.576t-.608.128q-1.28 1.664-1.856 3.68t-.448 4.064q0 .576.096 1.184t.288 1.184q.448 1.536 1.216 2.816 1.216 2.048 3.264 3.424t4.416 1.696q2.496.32 5.024-.256t4.448-2.304q1.408-1.344 2.208-3.104t.864-3.68-.704-3.712q-.064-.128-.096-.224t-.096-.224q-.576-1.088-1.28-1.984-.256-.384-.544-.704t-.672-.64z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_git" xmlns="http://www.w3.org/2000/svg"><path d="M27.472 12.753L15.247.529a1.803 1.803 0 00-2.55 0l-2.84 2.84 2.137 2.137a2.625 2.625 0 013.501 3.501l3.499 3.499a2.625 2.625 0 11-1.237 1.237l-3.499-3.499c-.083.04-.169.075-.257.106v7.3a2.626 2.626 0 11-1.75 0v-7.3a2.626 2.626 0 01-1.494-3.607L8.62 4.606l-8.09 8.09a1.805 1.805 0 000 2.551l12.225 12.224a1.803 1.803 0 002.55 0l12.168-12.168a1.805 1.805 0 000-2.551z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_gitea" xmlns="http://www.w3.org/2000/svg"><path d="M5.581 7.229c-2.46-.005-5.755 1.559-5.573 5.48.284 6.125 6.56 6.693 9.068 6.743.275 1.149 3.227 5.112 5.412 5.32h9.573c5.741-.381 10.04-17.363 6.853-17.427-5.271.248-8.395.373-11.073.395v5.3l-.835-.369-.005-4.928c-3.075-.001-5.781-.144-10.919-.397-.643-.004-1.539-.113-2.501-.116zm.348 2.166h.293c.349 3.14.917 4.976 2.067 7.781-2.933-.347-5.429-1.199-5.888-4.38-.237-1.647.563-3.365 3.528-3.401zm11.409 3.087c.2.003.404.04.596.128l.999.431-.716 1.305h-.007a.996.996 0 00-.321.053l.006-.002c-.349.114-.593.406-.593.749 0 .097.019.189.055.275l-.002-.006a.767.767 0 00.151.233l-.001-.001-1.235 2.248a.99.99 0 00-.302.052l.006-.002c-.349.114-.593.406-.593.749 0 .097.019.189.055.275l-.002-.006c.128.31.457.527.843.527a.987.987 0 00.31-.049l-.006.002c.348-.114.592-.406.592-.749 0-.097-.02-.19-.056-.277l.002.006a.784.784 0 00-.211-.293l1.203-2.189a.999.999 0 00.397-.041l-.006.002a.942.942 0 00.285-.15l-.001.001c.464.195.844.353 1.117.488.411.203.556.337.6.487.044.147-.004.429-.236.925-.173.369-.46.893-.799 1.511h-.02a.991.991 0 00-.321.053l.006-.002c-.349.114-.593.406-.593.749 0 .097.019.189.055.275l-.002-.006c.128.31.457.527.843.527a.987.987 0 00.31-.049l-.006.002c.348-.114.592-.406.592-.749a.703.703 0 00-.055-.275l.002.006a.802.802 0 00-.183-.27l.001.001c.335-.611.623-1.136.808-1.531.251-.536.381-.935.267-1.32s-.467-.636-.933-.867c-.307-.151-.689-.311-1.147-.503a.723.723 0 00-.052-.324l.002.006a.792.792 0 00-.194-.279l.704-1.284 3.899 1.684c.704.305.995 1.053.653 1.68l-2.68 4.907c-.343.625-1.184.884-1.888.58l-5.516-2.384c-.704-.304-.996-1.053-.653-1.68l2.68-4.905c.235-.431.707-.687 1.207-.707z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_github" xmlns="http://www.w3.org/2000/svg"><path d="M16 .394c8.833 0 15.999 7.166 15.999 15.999 0 7.062-4.583 13.062-10.937 15.187-.813.146-1.104-.354-1.104-.771 0-.521.021-2.25.021-4.396 0-1.5-.5-2.458-1.083-2.958 3.562-.396 7.312-1.75 7.312-7.896 0-1.75-.625-3.167-1.646-4.291.167-.417.708-2.042-.167-4.25-1.333-.417-4.396 1.646-4.396 1.646a15.032 15.032 0 00-8 0S8.937 6.602 7.603 7.018c-.875 2.208-.333 3.833-.167 4.25-1.021 1.125-1.646 2.542-1.646 4.291 0 6.125 3.729 7.5 7.291 7.896-.458.417-.875 1.125-1.021 2.146-.917.417-3.25 1.125-4.646-1.333-.875-1.521-2.458-1.646-2.458-1.646-1.562-.021-.104.979-.104.979 1.042.479 1.771 2.333 1.771 2.333.938 2.854 5.396 1.896 5.396 1.896 0 1.333.021 2.583.021 2.979 0 .417-.292.917-1.104.771C4.582 29.455-.001 23.455-.001 16.393-.001 7.56 7.165.394 15.998.394zM6.063 23.372c.042-.083-.021-.187-.146-.25-.125-.042-.229-.021-.271.042-.042.083.021.187.146.25.104.062.229.042.271-.042zm.646.709c.083-.062.062-.208-.042-.333-.104-.104-.25-.146-.333-.062-.083.062-.062.208.042.333.104.104.25.146.333.062zm.625.937c.104-.083.104-.25 0-.396-.083-.146-.25-.208-.354-.125-.104.062-.104.229 0 .375s.271.208.354.146zm.875.875c.083-.083.042-.271-.083-.396-.146-.146-.333-.167-.417-.062-.104.083-.062.271.083.396.146.146.333.167.417.062zm1.187.521c.042-.125-.083-.271-.271-.333-.167-.042-.354.021-.396.146s.083.271.271.312c.167.062.354 0 .396-.125zm1.313.104c0-.146-.167-.25-.354-.229-.187 0-.333.104-.333.229 0 .146.146.25.354.229.187 0 .333-.104.333-.229zm1.208-.208c-.021-.125-.187-.208-.375-.187-.187.042-.312.167-.292.312.021.125.187.208.375.167s.312-.167.292-.292z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_gitlab" xmlns="http://www.w3.org/2000/svg"><path d="M1.629 11.034L14 26.888.442 17.048a1.09 1.09 0 01-.39-1.203l1.578-4.811zm7.217 0h10.309l-5.154 15.854zM5.753 1.475l3.093 9.559H1.63l3.093-9.559a.548.548 0 011.031 0zm20.618 9.559l1.578 4.811c.141.437-.016.922-.39 1.203l-13.558 9.84 12.371-15.854zm0 0h-7.216l3.093-9.559a.548.548 0 011.031 0z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_heart" xmlns="http://www.w3.org/2000/svg"><path d="M16 29.714a1.11 1.11 0 01-.786-.321L4.072 18.643c-.143-.125-4.071-3.714-4.071-8 0-5.232 3.196-8.357 8.535-8.357 3.125 0 6.053 2.464 7.464 3.857 1.411-1.393 4.339-3.857 7.464-3.857 5.339 0 8.535 3.125 8.535 8.357 0 4.286-3.928 7.875-4.089 8.035L16.785 29.392c-.214.214-.5.321-.786.321z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_info_outline" xmlns="http://www.w3.org/2000/svg"><path d="M12.62 9.793V6.967h2.761v2.826H12.62zM14 25.239q4.601 0 7.92-3.319T25.239 14 21.92 6.08 14 2.761 6.08 6.08 2.761 14t3.319 7.92T14 25.239zM14 0q5.784 0 9.892 4.108T28 14t-4.108 9.892T14 28t-9.892-4.108T0 14t4.108-9.892T14 0zm-1.38 21.033V12.62h2.761v8.413H12.62z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_keyboard_arrow_down" xmlns="http://www.w3.org/2000/svg"><path d="M3.281 5.36L14 16.079 24.719 5.36 28 8.641l-14 14-14-14z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_keyboard_arrow_left" xmlns="http://www.w3.org/2000/svg"><path d="M25.875 28.25L22.125 32 6.126 16.001 22.125.002l3.75 3.75-12.25 12.25z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_keyboard_arrow_right" xmlns="http://www.w3.org/2000/svg"><path d="M6.125 28.25L18.375 16 6.125 3.75 9.875 0l15.999 15.999L9.875 31.998z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_keyboard_arrow_up" xmlns="http://www.w3.org/2000/svg"><path d="M24.719 22.64L14 11.921 3.281 22.64 0 19.359l14-14 14 14z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_link" xmlns="http://www.w3.org/2000/svg"><path d="M24.037 7.963q3.305 0 5.634 2.366T32 16t-2.329 5.671-5.634 2.366h-6.46v-3.08h6.46q2.028 0 3.493-1.465t1.465-3.493-1.465-3.493-3.493-1.465h-6.46v-3.08h6.46zM9.615 17.578v-3.155h12.77v3.155H9.615zM3.005 16q0 2.028 1.465 3.493t3.493 1.465h6.46v3.08h-6.46q-3.305 0-5.634-2.366T0 16.001t2.329-5.671 5.634-2.366h6.46v3.08h-6.46q-2.028 0-3.493 1.465t-1.465 3.493z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_mastodon" xmlns="http://www.w3.org/2000/svg"><path d="M30.924 10.506c0-6.941-4.548-8.976-4.548-8.976C24.083.477 20.144.034 16.054.001h-.101C11.862.034 7.926.477 5.633 1.53c0 0-4.548 2.035-4.548 8.976 0 1.589-.031 3.491.02 5.505.165 6.79 1.245 13.479 7.522 15.14 2.893.765 5.379.927 7.38.816 3.629-.2 5.667-1.296 5.667-1.296l-.12-2.633s-2.593.817-5.505.719c-2.887-.099-5.932-.311-6.399-3.855a7.069 7.069 0 01-.064-.967v-.028.001s2.833.693 6.423.857c2.195.1 4.253-.129 6.344-.377 4.009-.479 7.5-2.949 7.939-5.207.689-3.553.633-8.676.633-8.676zm-5.366 8.945h-3.329v-8.159c0-1.72-.724-2.592-2.171-2.592-1.6 0-2.403 1.035-2.403 3.083v4.465h-3.311v-4.467c0-2.048-.803-3.083-2.403-3.083-1.447 0-2.171.873-2.171 2.592v8.159H6.441v-8.404c0-1.719.437-3.084 1.316-4.093.907-1.011 2.092-1.528 3.565-1.528 1.704 0 2.995.655 3.848 1.965l.828 1.391.829-1.391c.853-1.311 2.144-1.965 3.848-1.965 1.472 0 2.659.517 3.565 1.528.877 1.009 1.315 2.375 1.315 4.093z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_matrix" xmlns="http://www.w3.org/2000/svg"><path d="M.843.734v30.532H3.04v.733H0V0h3.04v.733zm9.391 9.68v1.543h.044a4.417 4.417 0 011.489-1.365c.577-.327 1.248-.487 2-.487.72 0 1.377.143 1.975.419.597.277 1.047.776 1.36 1.477.339-.499.8-.941 1.379-1.323.579-.383 1.267-.573 2.061-.573.604 0 1.163.075 1.68.223a3.34 3.34 0 011.324.707c.368.327.652.745.861 1.268.203.523.307 1.151.307 1.889v7.637h-3.132v-6.468c0-.381-.013-.745-.043-1.083a2.315 2.315 0 00-.246-.893l.006.013a1.484 1.484 0 00-.577-.593l-.007-.004c-.259-.147-.609-.221-1.047-.221-.443 0-.8.085-1.071.252-.267.166-.483.39-.635.656l-.005.009a2.558 2.558 0 00-.307.915l-.002.013a7.156 7.156 0 00-.08 1.044v6.359h-3.133v-6.4c0-.339-.005-.671-.024-1.003a2.772 2.772 0 00-.197-.936l.007.019a1.41 1.41 0 00-.548-.667l-.006-.003c-.259-.167-.635-.253-1.139-.253-.148 0-.345.032-.585.099-.24.068-.48.191-.707.376-.228.184-.425.449-.585.793-.16.345-.24.8-.24 1.36v6.621H7.279v-11.42zm20.923 20.852V.734H28.96V.001H32V32h-3.04v-.733z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_menu" xmlns="http://www.w3.org/2000/svg"><path d="M.001 5.334h31.998v3.583H.001V5.334zm0 12.416v-3.5h31.998v3.5H.001zm0 8.916v-3.583h31.998v3.583H.001z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_notifications" xmlns="http://www.w3.org/2000/svg"><path d="M25.846 22.154l3.308 3.308v1.615H2.847v-1.615l3.308-3.308V14q0-3.846 1.961-6.692t5.423-3.692V2.462q0-1 .692-1.731T16 0t1.769.731.692 1.731v1.154q3.461.846 5.423 3.692T25.846 14v8.154zM16 32q-1.385 0-2.346-.923t-.962-2.308h6.615q0 1.308-1 2.269T15.999 32z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_person" xmlns="http://www.w3.org/2000/svg"><path d="M16 20.023q5.052 0 10.526 2.199t5.473 5.754v4.023H0v-4.023q0-3.555 5.473-5.754t10.526-2.199zM16 16q-3.275 0-5.614-2.339T8.047 8.047t2.339-5.661T16 0t5.614 2.386 2.339 5.661-2.339 5.614T16 16z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_pin" xmlns="http://www.w3.org/2000/svg"><path d="M17.6 19.2h9.6v-1.6L22.4 16V3.2l4.8-1.6V0H4.8v1.6l4.8 1.6V16l-4.8 1.6v1.6h9.6v11.2L16 32l1.6-1.6V19.2z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_rss_feed" xmlns="http://www.w3.org/2000/svg"><path d="M-.481 12.048q8.482 0 14.457 5.976t5.976 14.457h-5.879q0-5.976-4.289-10.264T-.48 17.928v-5.879zm0-11.565q13.204 0 22.601 9.397t9.397 22.601h-5.783q0-10.891-7.662-18.553T-.481 6.266V.483zm0 27.468q0-1.831 1.301-3.132t3.229-1.301 3.181 1.253 1.253 3.181-1.301 3.229-3.132 1.301q-1.928 0-3.229-1.301T-.48 27.952z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_search" xmlns="http://www.w3.org/2000/svg"><path d="M11.925 20.161q3.432 0 5.834-2.402t2.402-5.834-2.402-5.834-5.834-2.402-5.834 2.402-2.402 5.834 2.402 5.834 5.834 2.402zm10.981 0L32 29.255 29.255 32l-9.094-9.094v-1.458l-.515-.515q-3.26 2.831-7.721 2.831-4.976 0-8.45-3.432T.001 11.925t3.474-8.45 8.45-3.474 8.407 3.474 3.432 8.45q0 1.802-.858 4.075t-1.973 3.646l.515.515h1.458z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_security" xmlns="http://www.w3.org/2000/svg"><path d="M16 0l13.072 5.855v8.715q0 6.059-3.745 11.063T16 31.999q-5.583-1.362-9.327-6.366T2.928 14.57V5.855zm0 16v13.004q4.017-1.294 6.808-4.868T26.144 16H16zm0 0V3.2L5.856 7.693v8.306H16z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_star" xmlns="http://www.w3.org/2000/svg"><path d="M14 22.052L5.324 27.31l2.3-9.859L0 10.813l10.056-.854L14 .692l3.944 9.267L28 10.813l-7.624 6.638 2.3 9.859z"/></svg><svg viewBox="-7.27 -7.27 42.55 42.55" id="gblog_tag" xmlns="http://www.w3.org/2000/svg"><path d="M17.52 17.52v-7.041h-7.041v7.041h7.041zM28 10.479h-7.041v7.041H28v3.439h-7.041V28H17.52v-7.041h-7.041V28H7.04v-7.041H-.001V17.52H7.04v-7.041H-.001V7.04H7.04V-.001h3.439V7.04h7.041V-.001h3.439V7.04H28v3.439z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_timer" xmlns="http://www.w3.org/2000/svg"><path d="M16 29q4.428 0 7.536-3.143t3.107-7.571-3.107-7.536T16 7.643 8.464 10.75t-3.107 7.536 3.107 7.571T16 29zM26.714 9.786q1.214 1.571 2.107 4.036t.893 4.464q0 5.643-4 9.678T16 32t-9.714-4.036-4-9.678 4-9.678T16 4.572q1.929 0 4.464.929t4.107 2.143l2.143-2.214q1.143.929 2.143 2.143zM14.5 19.857v-9.143h3v9.143h-3zM20.571.001v3.071h-9.143V.001h9.143z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_tree" xmlns="http://www.w3.org/2000/svg"><path d="M32 14.423H20.808V9.616h-3.23v12.77h3.23v-4.807H32v12.845H20.808v-4.807h-6.385v-16h-3.23v4.807H.001V1.579h11.192v4.807h9.615V1.579H32v12.845z"/></svg><svg viewBox="-7.27 -7.27 46.55 46.55" id="gblog_xmpp" xmlns="http://www.w3.org/2000/svg"><path d="M31.995 4.237c-.449.175-1.12.433-1.936.745-1.544.591-2.328.891-2.924 1.093-.613.208-1.287.409-2.635.813-.911.272-1.672.495-2.212.651-.031.875 0 2.177-.292 3.635a21.837 21.837 0 01-2.016 5.765c-1.496 2.944-3.236 4.817-3.88 5.476-.056-.059-.112-.117-.168-.179-.707-.763-2.403-2.703-3.815-5.683-1.053-2.223-1.484-4.044-1.605-4.584-.356-1.589-.427-2.955-.427-4.117 0-.075-.036-.129-.101-.149-.721-.223-1.765-.519-2.887-.853-1.271-.379-2.193-.744-3.408-1.2-.493-.185-1.409-.547-2.217-.859C.723 4.499.113 4.236.041 4.236c-.005 0-.015 0-.023.012a.131.131 0 00-.019.076c.009.593.08 1.361.256 2.365.615 3.503 2.688 7.061 4.36 9.244 0 0 3.717 5.035 9.128 8.144l.303.176c-.009.008-.02.015-.028.021-1.717 1.316-3.201 1.977-3.579 2.14a15.71 15.71 0 01-2.219.772v.407a25.31 25.31 0 002.72-.487 26.72 26.72 0 005.075-1.792c.136.067.276.136.42.204 1.527.725 3.571 1.627 6.073 2.048.613.103 1.136.165 1.507.195a.109.109 0 00.115-.091.55.55 0 00.004-.217.107.107 0 00-.063-.073c-.505-.209-1.201-.4-1.983-.719-.935-.381-2.241-1.067-3.648-2.128a13.528 13.528 0 01-.367-.287c4.64-2.656 7.989-6.588 7.989-6.588 1.735-2.036 4.441-5.623 5.431-9.795.349-1.473.539-2.741.5-3.628z"/></svg></defs></svg>
+
+  <!-- geekblog include: sprites/linkedin.svg -->
+  <svg width="0" height="0" class="hidden">
+  <symbol xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" id="linkedin">
+    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"></path>
+  </symbol>
+</svg>
+
+
+
+
+    <div
+      class="wrapper "
+    >
+      <header class="gblog-header">
+  <div class="container flex flex-wrap">
+    <div class="gblog-header__col-1 flex justify-start hidden-mobile"></div>
+    <div class="gblog-header__col-2 flex align-center justify-center ">
+      <a class="gblog-header__link" rel="me" href="https://iserghini.github.io/">
+        <span class="gblog-brand flex align-center justify-center">
+          <img
+            class="gblog-brand__img"
+            src="/logo-1.svg"
+            alt=""
+          />
+          <span class="gblog-brand__title">Ismael Serghini&#39;s Blog</span>
+        </span>
+        
+      </a>
+    </div>
+    <div class="gblog-header__col-3 flex justify-end">
+      <span id="gblog-color-theme">
+        <svg class="gblog-icon gblog_brightness_dark">
+          <title></title>
+          <use xlink:href="#gblog_brightness_dark"></use>
+        </svg>
+        <svg class="gblog-icon gblog_brightness_light">
+          <title></title>
+          <use xlink:href="#gblog_brightness_light"></use>
+        </svg>
+        <svg class="gblog-icon gblog_brightness_auto">
+          <title></title>
+          <use xlink:href="#gblog_brightness_auto"></use>
+        </svg>
+      </span>
+    </div>
+  </div>
+</header>
+<nav class="gblog-nav">
+  <input type="checkbox" id="menu-control" class="hidden" />
+  <div class="gblog-nav__control">
+    <label for="menu-control" class="flex align-center justify-center">
+      <svg class="gblog-icon gblog_menu"><use xlink:href="#gblog_menu"></use></svg>
+      <svg class="gblog-icon gblog_clear"><use xlink:href="#gblog_clear"></use></svg>
+      <span>Navigation</span>
+    </label>
+  </div>
+  <ul class="gblog-nav__list container flex flex-wrap justify-center menu-content">
+    
+    
+      
+    
+    
+      
+
+  
+  
+  
+
+  
+    
+      
+      
+      
+
+      
+        <li>
+          <a
+            href="/"
+            class="gblog-nav__entry"
+          >
+            <span class="flex align-center">
+              
+                <svg class="gblog-icon gblog_menu"><use xlink:href="#gblog_menu"></use></svg>
+              
+              <span>
+                Home
+              </span>
+            </span>
+          </a>
+        </li>
+      
+    
+  
+    
+      
+      
+      
+
+      
+        <li>
+          <a
+            href="/about/"
+            class="gblog-nav__entry"
+          >
+            <span class="flex align-center">
+              
+                <svg class="gblog-icon gblog_person"><use xlink:href="#gblog_person"></use></svg>
+              
+              <span>
+                About
+              </span>
+            </span>
+          </a>
+        </li>
+      
+    
+  
+    
+      
+      
+      
+
+      
+        <li>
+          <a
+            href="https://www.linkedin.com/in/ismael-serghini-772a80110/"
+            class="gblog-nav__entry"
+          >
+            <span class="flex align-center">
+              
+                <svg class="gblog-icon linkedin"><use xlink:href="#linkedin"></use></svg>
+              
+              <span>
+                
+              </span>
+            </span>
+          </a>
+        </li>
+      
+    
+  
+    
+      
+      
+      
+
+      
+        <li>
+          <a
+            href="https://github.com/iserghini/"
+            class="gblog-nav__entry"
+          >
+            <span class="flex align-center">
+              
+                <svg class="gblog-icon gblog_github"><use xlink:href="#gblog_github"></use></svg>
+              
+              <span>
+                
+              </span>
+            </span>
+          </a>
+        </li>
+      
+    
+  
+
+
+
+
+
+
+    
+  </ul>
+</nav>
+
+
+
+      <main class="gblog-page container">
+        
+  <article class="gblog-post">
+    <header class="gblog-post__header">
+      
+      
+
+
+      <h1 class="gblog-post__title">Getting started with Network Automation using Vagrant &#43; Libvirt</h1>
+
+      
+    </header>
+    <section class="gblog-markdown">
+      <p>In this post, I&rsquo;m going to walk you through how to set up an environment that can be used for testing what&rsquo;s been called
+these days &ldquo;Cloud Native Data Centers&rdquo;, including underlay/overlay protocols, network automation scripts, zero-touch
+provisioning, monitoring, observability amongst many other things.</p>
+<p>In order to build this, we&rsquo;re going to use Vagrant combined with Libvirt, which uses KVM as the hypervisor.
+I&rsquo;ve chosen Libvirt over Virtualbox due to its better scalability and portability beyond running some small tests in
+your home PC<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>. You don&rsquo;t normally see Virtualbox in Linux servers, but you do see KVM.</p>
+<p>The great think about Vagrant is that it uses text files to describe the entire network topology, this allows us
+to use git for version control and to automate the creation of the test environment - no need to waste time
+pointing and clicking in a GUI.</p>
+<p>There&rsquo;s a bit of a learning curve understanding the text file that Vagrant uses to describe the topology (called
+Vagrantfile). Hopefully, after you read this blog post, you will be able to create you own topologies without any issues.</p>
+  <div class="gblog-toc gblog-toc__level--6">
+    <nav id="TableOfContents"><ul>
+        <li><a href="#network-topology">Network Topology</a>
+          <ul>
+            <li><a href="#os-versions">OS versions</a></li>
+            <li><a href="#management-ip-addressing">Management IP Addressing</a></li>
+          </ul>
+        </li>
+        <li><a href="#installing-vagrant-and-libvirt-plugging2">Installing Vagrant and Libvirt plugging</a></li>
+        <li><a href="#building-vagrantfile">Building &lsquo;Vagrantfile&rsquo;</a>
+          <ul>
+            <li><a href="#how-to-model-a-device">How to model a device</a></li>
+            <li><a href="#how-to-model-a-p2p-link">How to model a P2P link</a></li>
+            <li><a href="#how-to-preconfigure-devices">How to preconfigure devices</a></li>
+            <li><a href="#final-vagrantfile-modelling-our-full-network-topology">Final Vagrantfile modelling our full network topology</a></li>
+          </ul>
+        </li>
+        <li><a href="#running-vagrant-up">Running &lsquo;vagrant up&rsquo;</a></li>
+        <li><a href="#further-reading">Further Reading</a></li>
+      </ul></nav>
+    <hr />
+  </div>
+
+
+<div class="gblog-post__anchorwrap">
+    <h2 id="network-topology">
+        Network Topology
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#network-topology" class="gblog-post__anchor clip flex align-center" aria-label="Anchor Network Topology" href="#network-topology">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h2>
+</div>
+<p>We&rsquo;re going to build the following 3-stage Clos topology made up of two spines, four leaves, and two servers.
+Additionally, we have an out-of-band management network (purple) where all devices are connected to via their management
+interfaces through a Libvirt virtual bridge. Lastly, we have a mgmt-server connected to the virtual bridge only.</p>
+
+
+
+  <div class="flex justify-center">
+    <figure
+      class="gblog-post__figure"
+    >
+      <a class="gblog-markdown__link--raw" href="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/images/base_topology.png">
+        <picture>
+          <source
+              srcset="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/images/base_topology_hu586e40d742ed2334896b479f205077e7_5187024_600x0_resize_box_3.png 600w, https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/images/base_topology_hu586e40d742ed2334896b479f205077e7_5187024_1200x0_resize_box_3.png 1200w" sizes="100vw"
+          />
+          <img
+            src="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/images/base_topology_hu586e40d742ed2334896b479f205077e7_5187024_1800x0_resize_box_3.png"
+            alt="3-stage Clos Network"
+          />
+        </picture>
+      </a>
+          <figcaption>
+            3-stage Clos Network
+          </figcaption>
+    </figure>
+  </div>
+
+<div class="gblog-post__anchorwrap">
+    <h3 id="os-versions">
+        OS versions
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#os-versions" class="gblog-post__anchor clip flex align-center" aria-label="Anchor OS versions" href="#os-versions">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h3>
+</div>
+<p>Switches: Cumulus VX 3.7.15<br>
+Servers: Ubuntu 20.04</p>
+<div class="gblog-post__anchorwrap">
+    <h3 id="management-ip-addressing">
+        Management IP Addressing
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#management-ip-addressing" class="gblog-post__anchor clip flex align-center" aria-label="Anchor Management IP Addressing" href="#management-ip-addressing">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h3>
+</div>
+<p>Assigned all via DHCP. The MGMT network has been configured explicitly in the Vagranfile to be 172.16.100.0/24.</p>
+<p>The assigned DHCP allocations can bee seen running the following command:</p>
+<pre tabindex="0"><code>virsh net-dhcp-leases vagrant-libvirt
+</code></pre><p>If you&rsquo;re not using the default vagrant-libvirt network, then you need to change the name there.</p>
+<div class="gblog-post__anchorwrap">
+    <h2 id="installing-vagrant-and-libvirt-plugging2">
+        Installing Vagrant and Libvirt plugging<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup>
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#installing-vagrant-and-libvirt-plugging2" class="gblog-post__anchor clip flex align-center" aria-label="Anchor Installing Vagrant and Libvirt plugging2" href="#installing-vagrant-and-libvirt-plugging2">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h2>
+</div>
+<p>After spending a lot of time trying to figure out how to make the libvirt plugin work with Vagrant (there seems to be
+tons of problems due to different versions being used) I&rsquo;ve figured out that if you just run this script, it all works immediately:</p>
+<p>
+<a href="https://github.com/vagrant-libvirt/vagrant-libvirt-qa/blob/main/scripts/install.bash" target="_blank">https://github.com/vagrant-libvirt/vagrant-libvirt-qa/blob/main/scripts/install.bash</a>
+
+</p>
+
+<div class="gblog-expand">
+  <label class="gblog-expand__head flex justify-between" for="ae1dfaec-2">
+    <span>Click to see the above script - to run it: &#39;bash install.bash&#39;</span>
+    <span>...</span>
+  </label>
+  <input id="ae1dfaec-2" type="checkbox" class="gblog-expand__control hidden" />
+  <div class="gblog-markdown--nested gblog-expand__content">
+    <pre tabindex="0"><code>#!/bin/bash
+
+set -o errexit -o pipefail -o noclobber -o nounset
+
+DPKG_OPTS=(
+    -o Dpkg::Options::=&#34;--force-confold&#34;
+)
+VAGRANT_LIBVIRT_VERSION=${VAGRANT_LIBVIRT_VERSION:-&#34;latest&#34;}
+
+function restart_libvirt() {
+    service_name=${1:-libvirtd}
+    # it appears there can be issues with libvirt being started before certain
+    # packages that are required for create behaviour on first run. Restart to
+    # ensure the daemon picks up the latest environment and can create a VM
+    # on the first attempt. Otherwise will need to reboot
+    sudo systemctl restart ${service_name}
+}
+
+function setup_apt() {
+    export DEBIAN_FRONTEND=noninteractive
+    export DEBCONF_NONINTERACTIVE_SEEN=true
+
+    sudo sed -i &#34;s/# deb-src/deb-src/&#34; /etc/apt/sources.list
+    sudo -E apt-get update
+    sudo -E apt-get -y &#34;${DPKG_OPTS[@]}&#34; upgrade
+    sudo -E apt-get -y build-dep vagrant ruby-libvirt
+}
+
+function setup_arch() {
+    sudo pacman -Suyu --noconfirm --noprogressbar
+    sudo pacman -Qs &#39;iptables&#39; | grep &#34;local&#34; | grep &#34;iptables &#34; &amp;&amp; sudo pacman -Rd --nodeps --noconfirm iptables
+    # need to remove iptables to allow ebtables to be installed
+    sudo pacman -S --needed --noprogressbar --noconfirm  \
+        autoconf \
+        automake \
+        binutils \
+        bridge-utils \
+        dnsmasq \
+        git \
+        gcc \
+        iptables-nft \
+        libvirt \
+        libxml2 \
+        libxslt \
+        make \
+        openbsd-netcat \
+        pkg-config \
+        qemu \
+        ruby \
+        wget \
+        ;
+    sudo systemctl enable --now libvirtd
+}
+
+function setup_centos_7() {
+    sudo yum -y update
+    sudo yum -y install centos-release-qemu-ev
+    sudo yum -y update
+    sudo yum -y install \
+        autoconf \
+        automake \
+        binutils \
+        cmake \
+        gcc \
+        git \
+        libguestfs-tools \
+        libvirt \
+        libvirt-devel \
+        make \
+        qemu \
+        qemu-kvm-ev \
+        ruby-devel \
+        wget \
+        ;
+    restart_libvirt
+}
+
+function setup_centos() {
+    sudo dnf -y update
+    sudo dnf -y install \
+        @virt \
+        autoconf \
+        automake \
+        binutils \
+        byacc \
+        cmake \
+        gcc \
+        gcc-c++ \
+        git \
+        libguestfs-tools \
+        libvirt \
+        libvirt-devel \
+        make \
+        qemu-kvm \
+        rpm-build \
+        ruby-devel \
+        wget \
+        zlib-devel \
+        ;
+    restart_libvirt
+}
+
+function setup_debian() {
+    setup_apt
+    sudo -E apt-get -y &#34;${DPKG_OPTS[@]}&#34; install \
+        dnsmasq \
+        ebtables \
+        git \
+        libvirt-clients \
+        libvirt-daemon \
+        libvirt-daemon-system \
+        qemu \
+        qemu-system-x86 \
+        qemu-utils \
+        wget \
+        ;
+    restart_libvirt
+}
+
+function setup_fedora() {
+    sudo dnf -y update
+    sudo dnf -y install \
+        @virtualization \
+        autoconf \
+        automake \
+        binutils \
+        byacc \
+        cmake \
+        gcc \
+        gcc-c++ \
+        git \
+        libguestfs-tools \
+        libvirt-devel \
+        make \
+        wget \
+        zlib-devel \
+        ;
+    restart_libvirt
+}
+
+function setup_ubuntu_1804() {
+    setup_apt
+    sudo -E apt-get -y &#34;${DPKG_OPTS[@]}&#34; install \
+        git \
+        libvirt-bin \
+        qemu \
+        wget \
+        ;
+    restart_libvirt
+}
+
+function setup_ubuntu() {
+    setup_apt
+    sudo -E apt-get -y &#34;${DPKG_OPTS[@]}&#34; install \
+        git \
+        libvirt-clients \
+        libvirt-daemon \
+        libvirt-daemon-system \
+        qemu \
+        qemu-system-x86 \
+        qemu-utils \
+        wget \
+        ;
+    restart_libvirt
+}
+
+function setup_distro() {
+    local distro=${1}
+    local version=${2:-}
+
+    if [[ -n &#34;${version}&#34; ]] &amp;&amp; [[ $(type -t setup_${distro}_${version} 2&gt;/dev/null) == &#39;function&#39; ]]
+    then
+        eval setup_${distro}_${version}
+    else
+        eval setup_${distro}
+    fi
+}
+
+
+function download_vagrant() {
+    local version=${1}
+    local pkgext=${2}
+    local pkg=&#34;vagrant_${1}_x86_64.${pkgext}&#34;
+
+    wget --no-verbose https://releases.hashicorp.com/vagrant/${version}/${pkg} -O /tmp/${pkg}.tmp
+    mv /tmp/${pkg}.tmp /tmp/${pkg}
+}
+
+function install_rake_arch() {
+    sudo pacman -S --needed --noprogressbar --noconfirm  \
+        ruby-bundler \
+        rake
+}
+
+function install_rake_centos() {
+    sudo yum -y install \
+        rubygem-bundler \
+        rubygem-rake
+}
+
+function install_rake_debian() {
+    sudo apt install -y \
+        bundler \
+        rake
+}
+
+function install_rake_fedora() {
+    sudo dnf -y install \
+        rubygem-rake
+}
+
+function install_rake_ubuntu() {
+    install_rake_debian $@
+}
+
+function install_vagrant_arch() {
+    sudo pacman -S --needed --noprogressbar --noconfirm  \
+        vagrant
+}
+
+function install_vagrant_centos() {
+    local version=$1
+
+    download_vagrant ${version} rpm
+    sudo -E rpm -Uh --force /tmp/vagrant_${version}_x86_64.rpm
+}
+
+function install_vagrant_debian() {
+    local version=$1
+
+    download_vagrant ${version} deb
+    sudo -E dpkg -i /tmp/vagrant_${version}_x86_64.deb
+}
+
+function install_vagrant_fedora() {
+    install_vagrant_centos $@
+}
+
+function install_vagrant_ubuntu() {
+    install_vagrant_debian $@
+}
+
+function build_libssh() {
+    local dir=${1}
+
+    mkdir -p ${dir}-build
+    pushd ${dir}-build
+    cmake ${dir} -DOPENSSL_ROOT_DIR=/opt/vagrant/embedded/
+    make
+    sudo cp lib/libssh* /opt/vagrant/embedded/lib64
+    popd
+}
+
+function build_krb5() {
+    local dir=${1}
+
+    pushd ${dir}/src
+    ./configure
+    make
+    sudo cp -P lib/crypto/libk5crypto.* /opt/vagrant/embedded/lib64/
+    popd
+}
+
+function setup_rpm_sources_centos() {
+    typeset -n basedir=$1
+    pkg=&#34;$2&#34;
+    rpmname=&#34;${3:-${pkg}}&#34;
+
+    [[ ! -d ${pkg} ]] &amp;&amp; git clone https://git.centos.org/rpms/${pkg}
+    pushd ${pkg}
+    nvr=$(rpm -q --queryformat &#34;${pkg}-%{version}-%{release}&#34; ${rpmname})
+    nv=$(rpm -q --queryformat &#34;${pkg}-%{version}&#34; ${rpmname})
+    git checkout $(git tag -l | grep &#34;${nvr}\$&#34; | tail -n1)
+    into_srpm.sh -d c8s
+    pushd BUILD
+    tar xf ../SOURCES/${nv}.tar.*z
+
+    basedir=$(realpath ${nv})
+    popd
+    popd
+}
+
+function patch_vagrant_centos_8() {
+    mkdir -p patches
+    pushd patches
+    [[ ! -d centos-git-common ]] &amp;&amp; git clone https://git.centos.org/centos-git-common
+    export PATH=$(readlink -f ./centos-git-common):$PATH
+    chmod a+x ./centos-git-common/*.sh
+
+    setup_rpm_sources_centos LIBSSH_DIR libssh
+    build_libssh ${LIBSSH_DIR}
+
+    setup_rpm_sources_centos KRB5_DIR krb5 krb5-libs
+    build_krb5 ${KRB5_DIR}
+
+    popd
+}
+
+function setup_rpm_sources_fedora() {
+    typeset -n basedir=$1
+    pkg=&#34;$2&#34;
+    rpmname=&#34;${3:-${pkg}}&#34;
+
+    nvr=$(rpm -q --queryformat &#34;${pkg}-%{version}-%{release}&#34; ${rpmname})
+    nv=$(rpm -q --queryformat &#34;${pkg}-%{version}&#34; ${rpmname})
+    mkdir -p ${pkg}
+    pushd ${pkg}
+
+    [[ ! -e ${nvr}.src.rpm ]] &amp;&amp; dnf download --source ${rpmname}
+    rpm2cpio ${nvr}.src.rpm | cpio -imdV
+    rm -rf ${nv}
+    tar xf ${nv}.tar.*z
+
+    basedir=$(realpath ${nv})
+    popd
+}
+
+function patch_vagrant_fedora() {
+    mkdir -p patches
+    pushd patches
+
+    setup_rpm_sources_fedora LIBSSH_DIR libssh
+    build_libssh ${LIBSSH_DIR}
+
+    setup_rpm_sources_fedora KRB5_DIR krb5 krb5-libs
+    build_krb5 ${KRB5_DIR}
+
+    popd
+}
+
+function install_vagrant() {
+    local version=${1}
+    local distro=${2}
+    local distro_version=${3:-}
+
+    echo &#34;Installing vagrant version &#39;${version}&#39;&#34;
+
+    eval install_vagrant_${distro} ${version}
+
+    if [[ -n &#34;${distro_version}&#34; ]] &amp;&amp; [[ $(type -t patch_vagrant_${distro}_${distro_version} 2&gt;/dev/null) == &#39;function&#39; ]]
+    then
+        echo &#34;running patch_vagrant_${distro}_${distro_version}&#34;
+        eval patch_vagrant_${distro}_${distro_version}
+    elif [[ $(type -t patch_vagrant_${distro} 2&gt;/dev/null) == &#39;function&#39; ]]
+    then
+        echo &#34;running patch_vagrant_${distro}&#34;
+        eval patch_vagrant_${distro}
+    else
+        echo &#34;no patch functions configured for ${distro} ${distro_version}&#34;
+    fi
+}
+
+function install_vagrant_libvirt() {
+    local distro=${1}
+
+    echo &#34;Testing vagrant-libvirt version: &#39;${VAGRANT_LIBVIRT_VERSION}&#39;&#34;
+    if [[ &#34;${VAGRANT_LIBVIRT_VERSION:0:4}&#34; == &#34;git-&#34; ]]
+    then
+        eval install_rake_${distro}
+        if [[ ! -d &#34;./vagrant-libvirt&#34; ]]
+        then
+            git clone https://github.com/vagrant-libvirt/vagrant-libvirt.git
+        fi
+        pushd vagrant-libvirt
+        git checkout ${VAGRANT_LIBVIRT_VERSION#git-}
+        rm -rf ./pkg
+        rake build
+        vagrant plugin install ./pkg/vagrant-libvirt-*.gem
+        popd
+    elif [[ &#34;${VAGRANT_LIBVIRT_VERSION}&#34; == &#34;latest&#34; ]]
+    then
+        vagrant plugin install vagrant-libvirt
+    else
+        vagrant plugin install vagrant-libvirt --plugin-version ${VAGRANT_LIBVIRT_VERSION}
+    fi
+}
+
+
+OPTIONS=o
+LONGOPTS=vagrant-only,vagrant-version:
+
+# -pass arguments only via   -- &#34;$@&#34;   to separate them correctly
+! PARSED=$(getopt --options=$OPTIONS --longoptions=$LONGOPTS --name &#34;$0&#34; -- &#34;$@&#34;)
+if [[ ${PIPESTATUS[0]} -ne 0 ]]
+then
+    echo &#34;Invalid options provided&#34;
+    exit 2
+fi
+
+eval set -- &#34;$PARSED&#34;
+
+VAGRANT_ONLY=0
+
+while true; do
+    case &#34;$1&#34; in
+        -o|--vagrant-only)
+            VAGRANT_ONLY=1
+            shift
+            ;;
+        --vagrant-version)
+            VAGRANT_VERSION=$2
+            shift 2
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo &#34;Programming error&#34;
+            exit 3
+            ;;
+    esac
+done
+
+echo &#34;Starting vagrant-libvirt installation script&#34;
+
+DISTRO=${DISTRO:-$(awk -F= &#39;/^ID=/{print $2}&#39; /etc/os-release | tr -d &#39;&#34;&#39; | tr &#39;[A-Z]&#39; &#39;[a-z]&#39;)}
+DISTRO_VERSION=${DISTRO_VERSION:-$(awk -F= &#39;/^VERSION_ID/{print $2}&#39; /etc/os-release | tr -d &#39;&#34;&#39; | tr &#39;[A-Z]&#39; &#39;[a-z]&#39; | tr -d &#39;.&#39;)}
+
+[[ ${VAGRANT_ONLY} -eq 0 ]] &amp;&amp; setup_distro ${DISTRO} ${DISTRO_VERSION}
+
+if [[ -z ${VAGRANT_VERSION+x} ]]
+then
+    VAGRANT_VERSION=&#34;$(
+        wget -qO - https://checkpoint-api.hashicorp.com/v1/check/vagrant 2&gt;/dev/null | \
+            tr &#39;,&#39; &#39;\n&#39; | grep current_version | cut -d: -f2 | tr -d &#39;&#34;&#39;
+        )&#34;
+fi
+
+install_vagrant ${VAGRANT_VERSION} ${DISTRO} ${DISTRO_VERSION}
+
+[[ ${VAGRANT_ONLY} -eq 0 ]] &amp;&amp; install_vagrant_libvirt ${DISTRO}
+
+echo &#34;Finished vagrant-libvirt installation script&#34;
+</code></pre>
+  </div>
+</div>
+
+<p>Once the installation is finished, let&rsquo;s confirm everything works by trying to build an Ubuntu 20.04 VM.</p>
+<p>You can find all the pre-built Vagrant boxes 
+<a href="https://app.vagrantup.com/boxes/search" target="_blank">here</a>
+
+ just make sure you select
+libvirt as your provider - if you want to use an image not listed there, you&rsquo;ll need to build it yourself.<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup></p>
+<p>Let&rsquo;s build our first Vagrant box. Below we have the equivalent to &ldquo;hello world&rdquo; for Vagrant:</p>
+<pre tabindex="0"><code>lab@lab-HP-Z620-Workstation:~/NetworkAuto/clos$ vagrant init generic/ubuntu2004
+A `Vagrantfile` has been placed in this directory. You are now
+ready to `vagrant up` your first virtual environment! Please read
+the comments in the Vagrantfile as well as documentation on
+`vagrantup.com` for more information on using Vagrant.
+lab@lab-HP-Z620-Workstation:~/NetworkAuto/clos$ vagrant up
+Bringing machine &#39;default&#39; up with &#39;libvirt&#39; provider...
+...output trimmed...
+    default: Key inserted! Disconnecting and reconnecting using new SSH key...
+==&gt; default: Machine booted and ready!
+</code></pre><p>As you can see, it created the Vagrantfile for us. Later, we&rsquo;ll cover how to create this file from scratch.</p>
+<p>And here, we have our Ubuntu VM up and running:</p>
+<pre tabindex="0"><code>lab@lab-HP-Z620-Workstation:~/NetworkAuto/clos$ vagrant ssh
+vagrant@ubuntu2004:~$ cat /etc/*release*  | grep VERSION
+VERSION=&#34;20.04.4 LTS (Focal Fossa)&#34;
+VERSION_ID=&#34;20.04&#34;
+VERSION_CODENAME=focal
+vagrant@ubuntu2004:~$ 
+</code></pre><p>At this point, we&rsquo;ve confirmed that Vagrant is working fine with the Libvirt plugging, so let&rsquo;s delete the VM:</p>
+<pre tabindex="0"><code>lab@lab-HP-Z620-Workstation:~/NetworkAuto/clos$ vagrant destroy -f
+==&gt; default: Removing domain...
+==&gt; default: Deleting the machine folder
+</code></pre><div class="gblog-post__anchorwrap">
+    <h2 id="building-vagrantfile">
+        Building &lsquo;Vagrantfile&rsquo;
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#building-vagrantfile" class="gblog-post__anchor clip flex align-center" aria-label="Anchor Building &lsquo;Vagrantfile&rsquo;" href="#building-vagrantfile">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h2>
+</div>
+<p>As mentioned, Vagrant models everything using a file called &ldquo;Vagrantfile&rdquo; written in Ruby. In this section,
+we&rsquo;re going to explore the following three individual components:</p>
+<ul>
+<li>How Vagrant models devices</li>
+<li>How Vagrant models P2P network links</li>
+<li>How to run scripts at build time</li>
+</ul>
+<p>I&rsquo;m going to use the link between leaf01 and server01 to describe the above components of a Vagrantfile.</p>
+<div class="gblog-post__anchorwrap">
+    <h3 id="how-to-model-a-device">
+        How to model a device
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#how-to-model-a-device" class="gblog-post__anchor clip flex align-center" aria-label="Anchor How to model a device" href="#how-to-model-a-device">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h3>
+</div>
+<p>First, we set the following variables:</p>
+<pre tabindex="0"><code># Global Variables
+SWITCH_OS = &#34;CumulusCommunity/cumulus-vx&#34;
+SWITCH_VERSION = &#34;3.7.15&#34;
+SERVER_OS= &#34;generic/ubuntu2004&#34;
+</code></pre><p>Then, we define the device&rsquo;s name, software and VM settings (we&rsquo;re skipping the interfaces for now):</p>
+<pre tabindex="0"><code>
+####################################
+########## leaf01 config ###########
+####################################
+
+config.vm.define &#34;leaf01&#34; do |device|
+    device.vm.hostname = &#34;leaf01&#34;
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+  
+#####################################
+########## server01 config ##########
+#####################################
+
+config.vm.define &#34;server01&#34; do |device|
+    device.vm.hostname = &#34;server01&#34;
+    device.vm.box = SERVER_OS
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+</code></pre><p>The vm.synced_folder set to disable is to stop default Vagrant behaviour of sharing the project folder with the VM.
+You can find more details here 
+<a href="https://www.vagrantup.com/docs/synced-folders" target="_blank">https://www.vagrantup.com/docs/synced-folders</a>
+
+.</p>
+<div class="gblog-post__anchorwrap">
+    <h3 id="how-to-model-a-p2p-link">
+        How to model a P2P link
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#how-to-model-a-p2p-link" class="gblog-post__anchor clip flex align-center" aria-label="Anchor How to model a P2P link" href="#how-to-model-a-p2p-link">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h3>
+</div>
+<p>Libvirt uses tunnels to represent P2P links based on:</p>
+<ul>
+<li>Protocol: TCP or UDP</li>
+<li>Source IP</li>
+<li>Destination IP</li>
+<li>Source Port</li>
+<li>Destination Port</li>
+</ul>
+<p>Each link needs to be uniquely identified, therefore using different IPs with the same port numbers or vice-versa
+is sufficient.<br>
+For the sake of simplicity, I&rsquo;m keeping port 9999 unchanged and using different IPs to uniquely identify the link.</p>
+<pre tabindex="0"><code>####################################
+########## leaf01 config ##########
+####################################
+
+    # Link leaf01 swp3  ----&gt; server01 eth1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.18&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.17&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp3&#34;,
+      auto_config: false
+
+
+####################################
+########## server01 config ##########
+####################################
+
+    # Link server01 eth1  ----&gt; leaf01 swp3
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.17&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.18&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;eth1&#34;,
+      auto_config: false
+</code></pre><div class="gblog-post__anchorwrap">
+    <h3 id="how-to-preconfigure-devices">
+        How to preconfigure devices
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#how-to-preconfigure-devices" class="gblog-post__anchor clip flex align-center" aria-label="Anchor How to preconfigure devices" href="#how-to-preconfigure-devices">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h3>
+</div>
+<p>Another very useful feature of Vagrant is the option of running scripts at provisioning time.
+Once Vagrant builds the VM and can access it, it&rsquo;ll run the scripts described in the Vagrantfile.</p>
+<pre tabindex="0"><code>####################################
+########## leaf01 config ##########
+####################################
+
+device.vm.provision &#34;shell&#34;, inline: $switches_script, :args =&gt; [&#34;leaf01&#34;, &#34;3&#34;]
+
+####################################
+########## server01 config ##########
+####################################
+
+device.vm.provision &#34;shell&#34;, inline: $switches_script, :args =&gt; [&#34;leaf01&#34;, &#34;3&#34;]
+</code></pre><p>If your script doesn&rsquo;t need arguments, you can delete the :args section.</p>
+<div class="gblog-post__anchorwrap">
+    <h3 id="final-vagrantfile-modelling-our-full-network-topology">
+        Final Vagrantfile modelling our full network topology
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#final-vagrantfile-modelling-our-full-network-topology" class="gblog-post__anchor clip flex align-center" aria-label="Anchor Final Vagrantfile modelling our full network topology" href="#final-vagrantfile-modelling-our-full-network-topology">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h3>
+</div>
+<p>Now, it&rsquo;s time to see everything put together in the final Vagranfile, but before that, let&rsquo;s discuss a few things.</p>
+<p>First, how to set an env variable so that Vagrant&rsquo;s default provider is change from Virtualbox to Libvirt:</p>
+<pre tabindex="0"><code># Set libvirt as the default provider
+ENV[&#39;VAGRANT_DEFAULT_PROVIDER&#39;] = &#39;libvirt&#39;
+</code></pre><p>Second, in the following table I&rsquo;ve put together the tunnel IP mappings we&rsquo;re going to use to build the P2P links in the Vagrantfile.</p>
+<p>For the UDP ports I&rsquo;m going to use the same across all links to make things easier (port 9999), only the IPs will change.</p>
+<div class=table-wrap> <table>
+<thead>
+<tr>
+<th>Device A</th>
+<th>Intf A</th>
+<th>IP A</th>
+<th>UDP Port A</th>
+<th>Device B</th>
+<th>Intf B</th>
+<th>IP B</th>
+<th>UDP Port B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>spine01</td>
+<td>swp1</td>
+<td>127.0.100.1</td>
+<td>9999</td>
+<td>leaf01</td>
+<td>swp1</td>
+<td>127.0.100.2</td>
+<td>9999</td>
+</tr>
+<tr>
+<td>spine01</td>
+<td>swp2</td>
+<td>127.0.100.3</td>
+<td>9999</td>
+<td>leaf02</td>
+<td>swp1</td>
+<td>127.0.100.4</td>
+<td>9999</td>
+</tr>
+<tr>
+<td>spine01</td>
+<td>swp3</td>
+<td>127.0.100.5</td>
+<td>9999</td>
+<td>leaf03</td>
+<td>swp1</td>
+<td>127.0.100.6</td>
+<td>9999</td>
+</tr>
+<tr>
+<td>spine01</td>
+<td>swp4</td>
+<td>127.0.100.7</td>
+<td>9999</td>
+<td>leaf04</td>
+<td>swp1</td>
+<td>127.0.100.8</td>
+<td>9999</td>
+</tr>
+<tr>
+<td>spine02</td>
+<td>swp1</td>
+<td>127.0.100.9</td>
+<td>9999</td>
+<td>leaf01</td>
+<td>swp2</td>
+<td>127.0.100.10</td>
+<td>9999</td>
+</tr>
+<tr>
+<td>spine02</td>
+<td>swp2</td>
+<td>127.0.100.11</td>
+<td>9999</td>
+<td>leaf02</td>
+<td>swp2</td>
+<td>127.0.100.12</td>
+<td>9999</td>
+</tr>
+<tr>
+<td>spine02</td>
+<td>swp3</td>
+<td>127.0.100.13</td>
+<td>9999</td>
+<td>leaf03</td>
+<td>swp2</td>
+<td>127.0.100.14</td>
+<td>9999</td>
+</tr>
+<tr>
+<td>spine02</td>
+<td>swp4</td>
+<td>127.0.100.15</td>
+<td>9999</td>
+<td>leaf04</td>
+<td>swp2</td>
+<td>127.0.100.16</td>
+<td>9999</td>
+</tr>
+<tr>
+<td>server01</td>
+<td>eth1</td>
+<td>127.0.100.17</td>
+<td>9999</td>
+<td>leaf01</td>
+<td>swp3</td>
+<td>127.0.100.18</td>
+<td>9999</td>
+</tr>
+<tr>
+<td>server04</td>
+<td>eth1</td>
+<td>127.0.100.19</td>
+<td>9999</td>
+<td>leaf04</td>
+<td>swp3</td>
+<td>127.0.100.20</td>
+<td>9999</td>
+</tr>
+</tbody>
+</table> </div>
+<p>Third, the below changes:</p>
+<pre tabindex="0"><code>    config.vm.provider :libvirt do |domain|
+        # Change the default allowed number of interfaces from 8 to 52
+        domain.nic_adapter_count = 52
+        # Change the MGMT network subnet and its default name
+        domain.management_network_name = &#34;clos_fabric_mgmt_network&#34;
+        domain.management_network_address = &#34;172.16.100.0/24&#34;
+</code></pre><p>Finally, here&rsquo;s the final Vagranfile:</p>
+
+<div class="gblog-expand">
+  <label class="gblog-expand__head flex justify-between" for="943ee343-3">
+    <span>Click to see the full output</span>
+    <span>...</span>
+  </label>
+  <input id="943ee343-3" type="checkbox" class="gblog-expand__control hidden" />
+  <div class="gblog-markdown--nested gblog-expand__content">
+    <pre tabindex="0"><code># -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Set ENV variables
+ENV[&#39;VAGRANT_DEFAULT_PROVIDER&#39;] = &#39;libvirt&#39;
+
+# Global Variables
+SWITCH_OS = &#34;CumulusCommunity/cumulus-vx&#34;
+SWITCH_VERSION = &#34;3.7.15&#34;
+SERVER_OS= &#34;generic/ubuntu2004&#34;
+
+
+# Build scripts
+$switches_script = &lt;&lt;EOF
+sudo net add hostname $1
+sudo net add vrf mgmt
+sudo net add int swp1-$2
+sudo net commit
+EOF
+
+$servers_script = &lt;&lt;EOF
+sudo ip link set eth1 up
+sudo apt-get install net-tools -y
+sudo apt-get install inetutils-traceroute -y
+sudo apt-get install lldpd -y
+EOF
+
+$mgmt_server_script = &lt;&lt;EOF
+sudo apt-get install net-tools -y
+sudo apt-get install inetutils-traceroute -y
+sudo apt-get install lldpd -y
+EOF
+
+# Spine and Leaf Fabric - including servers
+
+Vagrant.configure(&#34;2&#34;) do |config|
+
+    config.vm.provider :libvirt do |domain|
+        # Change the default allowed number of interfaces from 8 to 52
+        domain.nic_adapter_count = 52
+        # Change the MGMT network subnet and its default name
+        domain.management_network_name = &#34;clos_fabric_mgmt_network&#34;
+        domain.management_network_address = &#34;172.16.100.0/24&#34;
+
+  end
+
+################################
+###### mgmt-server config ######
+################################
+
+config.vm.define &#34;mgmt-server&#34; do |device|
+    device.vm.hostname = &#34;mgmt-server&#34;
+    device.vm.box = SERVER_OS
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 4096
+        domain.cpus = 4
+    end
+
+    # No data plane links
+
+    device.vm.provision &#34;shell&#34;, inline: $mgmt_server_script
+  end
+
+####################################
+########## spine01 config ##########
+####################################
+
+  config.vm.define &#34;spine01&#34; do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+    device.vm.hostname = &#34;spine01&#34;
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link spine01 swp1  ----&gt; leaf01 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.1&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.2&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp1&#34;,
+      auto_config: false
+
+    # Link spine01 swp2  ----&gt; leaf02 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.3&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.4&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp2&#34;,
+      auto_config: false
+
+    # Link spine01 swp3  ----&gt; leaf03 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.5&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.6&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp3&#34;,
+      auto_config: false
+
+    # Link spine01 swp4  ----&gt; leaf04 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.7&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.8&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp4&#34;,
+      auto_config: false
+
+    # Call script + provide values for its variables
+    device.vm.provision &#34;shell&#34;, inline: $switches_script, :args =&gt; [&#34;spine01&#34;, &#34;4&#34;]
+
+  end
+
+
+####################################
+########## spine02 config ##########
+####################################
+
+config.vm.define &#34;spine02&#34; do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+    device.vm.hostname = &#34;spine02&#34;
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link spine02 swp1  ----&gt; leaf01 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.9&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.10&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp1&#34;,
+      auto_config: false
+
+    # Link spine02 swp2  ----&gt; leaf02 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.11&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.12&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp2&#34;,
+      auto_config: false
+
+    # Link spine02 swp3  ----&gt; leaf03 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.13&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.14&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp3&#34;,
+      auto_config: false
+
+    # Link spine02 swp4  ----&gt; leaf04 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.15&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.16&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp4&#34;,
+      auto_config: false
+
+
+    device.vm.provision &#34;shell&#34;, inline: $switches_script, :args =&gt; [&#34;spine02&#34;, &#34;4&#34;]
+
+  end
+
+
+####################################
+########## leaf01 config ##########
+####################################
+
+config.vm.define &#34;leaf01&#34; do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+    device.vm.hostname = &#34;leaf01&#34;
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link leaf01 swp1  ----&gt; spine01 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.2&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.1&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp1&#34;,
+      auto_config: false
+
+    # Link leaf01 swp2  ----&gt; spine02 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.10&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.9&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp2&#34;,
+      auto_config: false
+
+    # Link leaf01 swp3  ----&gt; server01 eth1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.18&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.17&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp3&#34;,
+      auto_config: false
+
+
+    device.vm.provision &#34;shell&#34;, inline: $switches_script, :args =&gt; [&#34;leaf01&#34;, &#34;3&#34;]
+
+  end
+
+
+
+
+####################################
+########## leaf02 config ##########
+####################################
+
+config.vm.define &#34;leaf02&#34; do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+    device.vm.hostname = &#34;leaf02&#34;
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link leaf02 swp1  ----&gt; spine01 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.4&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.3&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp1&#34;,
+      auto_config: false
+
+    # Link leaf02 swp2  ----&gt; spine02 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.12&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.11&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp2&#34;,
+      auto_config: false
+
+
+    device.vm.provision &#34;shell&#34;, inline: $switches_script, :args =&gt; [&#34;leaf02&#34;, &#34;2&#34;]
+
+  end
+
+
+
+####################################
+########## leaf03 config ##########
+####################################
+
+config.vm.define &#34;leaf03&#34; do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+    device.vm.hostname = &#34;leaf03&#34;
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link leaf03 swp1  ----&gt; spine01 swp3
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.6&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.5&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp1&#34;,
+      auto_config: false
+
+    # Link leaf03 swp2  ----&gt; spine02 swp3
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.14&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.13&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp2&#34;,
+      auto_config: false
+
+
+    device.vm.provision &#34;shell&#34;, inline: $switches_script, :args =&gt; [&#34;leaf03&#34;, &#34;2&#34;]
+
+  end
+
+####################################
+########## leaf04 config ##########
+####################################
+
+config.vm.define &#34;leaf04&#34; do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+    device.vm.hostname = &#34;leaf04&#34;
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link leaf04 swp1  ----&gt; spine01 swp4
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.8&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.7&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp1&#34;,
+      auto_config: false
+
+    # Link leaf04 swp2  ----&gt; spine02 swp4
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.16&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.15&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp2&#34;,
+      auto_config: false
+
+    # Link leaf04 swp3  ----&gt; server04 eth1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.20&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.19&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;swp3&#34;,
+      auto_config: false
+
+
+    device.vm.provision &#34;shell&#34;, inline: $switches_script, :args =&gt; [&#34;leaf04&#34;, &#34;3&#34;]
+
+  end
+
+
+####################################
+########## server01 config ##########
+####################################
+
+
+config.vm.define &#34;server01&#34; do |device|
+    device.vm.hostname = &#34;server01&#34;
+    device.vm.box = SERVER_OS
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link server01 eth1  ----&gt; leaf01 swp3
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.17&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.18&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;eth1&#34;,
+      auto_config: false
+
+      device.vm.provision &#34;shell&#34;, inline: $servers_script
+  end
+
+
+####################################
+########## server04 config ##########
+####################################
+
+
+config.vm.define &#34;server04&#34; do |device|
+    device.vm.hostname = &#34;server04&#34;
+    device.vm.box = SERVER_OS
+    device.vm.synced_folder &#34;.&#34;, &#34;/vagrant&#34;, disabled: true
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link server01 eth1  ----&gt; leaf04 swp3
+    device.vm.network :private_network,
+      :libvirt__tunnel_type =&gt; &#34;udp&#34;,
+      :libvirt__tunnel_local_ip =&gt; &#34;127.0.100.19&#34;,
+      :libvirt__tunnel_local_port =&gt; &#34;9999&#34;,
+      :libvirt__tunnel_ip =&gt; &#34;127.0.100.20&#34;,
+      :libvirt__tunnel_port =&gt; &#34;9999&#34;,
+      :libvirt__iface_name =&gt; &#34;eth1&#34;,
+      auto_config: false
+
+      device.vm.provision &#34;shell&#34;, inline: $servers_script
+  end
+
+
+
+end
+</code></pre>
+  </div>
+</div>
+
+<div class="gblog-post__anchorwrap">
+    <h2 id="running-vagrant-up">
+        Running &lsquo;vagrant up&rsquo;
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#running-vagrant-up" class="gblog-post__anchor clip flex align-center" aria-label="Anchor Running &lsquo;vagrant up&rsquo;" href="#running-vagrant-up">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h2>
+</div>
+<p>Time to bring up the topology. Once we have our Vagranfile completed, we go inside the directory where the file is and run:</p>
+<pre tabindex="0"><code>lab@lab-HP-Z620-Workstation:~/NetworkAuto/test_libvirt_tunnels$ vagrant up
+Bringing machine &#39;mgmt-server&#39; up with &#39;libvirt&#39; provider...
+Bringing machine &#39;spine01&#39; up with &#39;libvirt&#39; provider...
+Bringing machine &#39;spine02&#39; up with &#39;libvirt&#39; provider...
+Bringing machine &#39;leaf01&#39; up with &#39;libvirt&#39; provider...
+Bringing machine &#39;leaf02&#39; up with &#39;libvirt&#39; provider...
+Bringing machine &#39;leaf03&#39; up with &#39;libvirt&#39; provider...
+Bringing machine &#39;leaf04&#39; up with &#39;libvirt&#39; provider...
+Bringing machine &#39;server01&#39; up with &#39;libvirt&#39; provider...
+Bringing machine &#39;server04&#39; up with &#39;libvirt&#39; provider...
+...output trimmed...
+</code></pre><p>Let&rsquo;s check the status after the &lsquo;vagrant up&rsquo; command finished:</p>
+<pre tabindex="0"><code>lab@lab-HP-Z620-Workstation:~/NetworkAuto/test_libvirt_tunnels$ vagrant status
+Current machine states:
+
+mgmt-server               running (libvirt)
+spine01                   running (libvirt)
+spine02                   running (libvirt)
+leaf01                    running (libvirt)
+leaf02                    running (libvirt)
+leaf03                    running (libvirt)
+leaf04                    running (libvirt)
+server01                  running (libvirt)
+server04                  running (libvirt)
+
+This environment represents multiple VMs. The VMs are all listed
+above with their current state. For more information about a specific
+VM, run `vagrant status NAME`.
+</code></pre><p>Ok, looking good, it seems all VMs are up and running. Let&rsquo;s see if the devices got their MGMT IP via DHCP:</p>
+<pre tabindex="0"><code>lab@lab-HP-Z620-Workstation:~/NetworkAuto/test_libvirt_tunnels$ virsh net-list 
+ Name                       State    Autostart   Persistent
+-------------------------------------------------------------
+ clos_fabric_mgmt_network   active   no          yes
+ default                    active   yes         yes
+
+lab@lab-HP-Z620-Workstation:~/NetworkAuto/test_libvirt_tunnels$ virsh net-dhcp-leases clos_fabric_mgmt_network
+ Expiry Time           MAC address         Protocol   IP address          Hostname      Client ID or DUID
+------------------------------------------------------------------------------------------------------------
+ 2022-07-23 08:23:10   52:54:00:32:b8:46   ipv4       172.16.100.183/24   mgmt-server   ...output trimmed...
+ 2022-07-23 08:23:26   52:54:00:5e:59:fd   ipv4       172.16.100.59/24    leaf03        -
+ 2022-07-23 08:23:27   52:54:00:62:24:7c   ipv4       172.16.100.47/24    leaf02        -
+ 2022-07-23 08:23:27   52:54:00:80:ed:99   ipv4       172.16.100.159/24   spine01       -
+ 2022-07-23 08:23:29   52:54:00:84:d2:b9   ipv4       172.16.100.18/24    leaf04        -
+ 2022-07-23 08:23:20   52:54:00:9d:2a:3c   ipv4       172.16.100.132/24   server01      ...output trimmed...
+ 2022-07-23 08:23:27   52:54:00:c3:fa:1a   ipv4       172.16.100.112/24   leaf01        -
+ 2022-07-23 08:23:27   52:54:00:e2:b4:67   ipv4       172.16.100.50/24    spine02       -
+ 2022-07-23 08:23:20   52:54:00:ef:9b:e8   ipv4       172.16.100.11/24    server04      ...output trimmed...
+</code></pre><p>Great, time for the final test, LLDP outputs:</p>
+<pre tabindex="0"><code>lab@lab-HP-Z620-Workstation:~/NetworkAuto/test_libvirt_tunnels$ vagrant ssh spine01 -c &#34;sudo net show lldp&#34;
+
+LocalPort  Speed  Mode     RemoteHost  RemotePort
+---------  -----  -------  ----------  ----------
+swp1       1G     Default  leaf01      swp1
+swp2       1G     Default  leaf02      swp1
+swp3       1G     Default  leaf03      swp1
+swp4       1G     Default  leaf04      swp1
+Connection to 172.16.100.159 closed.
+lab@lab-HP-Z620-Workstation:~/NetworkAuto/test_libvirt_tunnels$ vagrant ssh spine02 -c &#34;sudo net show lldp&#34;
+
+LocalPort  Speed  Mode     RemoteHost  RemotePort
+---------  -----  -------  ----------  ----------
+swp1       1G     Default  leaf01      swp2
+swp2       1G     Default  leaf02      swp2
+swp3       1G     Default  leaf03      swp2
+swp4       1G     Default  leaf04      swp2
+Connection to 172.16.100.50 closed.
+lab@lab-HP-Z620-Workstation:~/NetworkAuto/test_libvirt_tunnels$ vagrant ssh server01 -c &#34;sudo lldpcli show nei summary&#34;
+-------------------------------------------------------------------------------
+LLDP neighbors:
+-------------------------------------------------------------------------------
+Interface:    eth1, via: LLDP
+  Chassis:     
+    ChassisID:    mac 52:54:00:c3:fa:1a
+    SysName:      leaf01
+  Port:        
+    PortID:       ifname swp3
+    PortDescr:    swp3
+    TTL:          120
+-------------------------------------------------------------------------------
+Connection to 172.16.100.132 closed.
+lab@lab-HP-Z620-Workstation:~/NetworkAuto/test_libvirt_tunnels$ vagrant ssh server04 -c &#34;sudo lldpcli show nei summary&#34;
+-------------------------------------------------------------------------------
+LLDP neighbors:
+-------------------------------------------------------------------------------
+Interface:    eth1, via: LLDP
+  Chassis:     
+    ChassisID:    mac 52:54:00:84:d2:b9
+    SysName:      leaf04
+  Port:        
+    PortID:       ifname swp3
+    PortDescr:    swp3
+    TTL:          120
+-------------------------------------------------------------------------------
+Connection to 172.16.100.11 closed.
+lab@lab-HP-Z620-Workstation:~/NetworkAuto/test_libvirt_tunnels$ 
+</code></pre><p>As we can see from the LLDP outputs above, our topology is up and working as per our diagram. In terms of data plane,
+we don&rsquo;t have anything configured yet, but we can manage all devices from either our host machine or using the
+mgmt-server VM.</p>
+<p>In conclusion, we&rsquo;ve reached our goal. We&rsquo;ve got a topology ready to start running our various automation scripts
+or to test all the new fancy technologies.</p>
+<div class="gblog-post__anchorwrap">
+    <h2 id="further-reading">
+        Further Reading
+        <a data-clipboard-text="https://iserghini.github.io/posts/getting-started-with-vagrant-libvirt/#further-reading" class="gblog-post__anchor clip flex align-center" aria-label="Anchor Further Reading" href="#further-reading">
+            <svg class="gblog-icon gblog_link"><use xlink:href="#gblog_link"></use></svg>
+        </a>
+    </h2>
+</div>
+<ul>
+<li>
+<a href="https://github.com/vagrant-libvirt/vagrant-libvirt" target="_blank">https://github.com/vagrant-libvirt/vagrant-libvirt</a>
+
+</li>
+<li>
+<a href="https://www.rubydoc.info/gems/vagrant-libvirt/" target="_blank">https://www.rubydoc.info/gems/vagrant-libvirt/</a>
+
+</li>
+<li>
+<a href="https://www.vagrantup.com/docs" target="_blank">https://www.vagrantup.com/docs</a>
+
+</li>
+<li>
+<a href="https://github.com/ddutt/cloud-native-data-center-networking" target="_blank">https://github.com/ddutt/cloud-native-data-center-networking</a>
+
+</li>
+<li>
+<a href="https://codingpackets.com/blog/pseudo-wires-with-vagrant-and-libvirt/" target="_blank">https://codingpackets.com/blog/pseudo-wires-with-vagrant-and-libvirt/</a>
+
+</li>
+<li>
+<a href="https://github.com/ipspace/netsim-tools" target="_blank">https://github.com/ipspace/netsim-tools</a>
+
+</li>
+</ul>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>Even for this, Virtualbox has now become a problem, as it no longer works with the new M1,M2,..MACs.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>This post assumes that you have KVM and hardware virtualization already configured.&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3">
+<p>I&rsquo;ll be covering this in a future post.&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+    </section>
+  </article>
+
+      </main>
+
+      <footer class="gblog-footer">
+  <nav class="container flex">
+    <div>
+      <section class="flex flex-wrap align-center">
+        
+          <span class="gblog-footer__item gblog-footer__item--row">
+            <svg class="gblog-icon gblog_rss_feed"><use xlink:href="#gblog_rss_feed"></use></svg>
+            <a href="/feed.xml" class="gblog-footer__link">Atom Feed</a>
+          </span>
+        
+        
+        
+        
+      </section>
+      <section class="flex flex-wrap align-center">
+        <span class="gblog-footer__item">
+          Built with <a href="https://gohugo.io/" class="gblog-footer__link">Hugo</a> and
+          <svg class="gblog-icon gblog_heart"><use xlink:href="#gblog_heart"></use></svg>
+        </span>
+      </section>
+      
+      
+    </div>
+    
+      <div class="flex flex-25 justify-end">
+        <span class="gblog-footer__item text-right">
+          <a class="gblog-footer__link fake-link" href="#" aria-label="Back to top">
+            <svg class="gblog-icon gblog_keyboard_arrow_up">
+              <use xlink:href="#gblog_keyboard_arrow_up"></use>
+            </svg>
+            <span class="hidden-mobile">Back to top</span>
+          </a>
+        </span>
+      </div>
+    
+  </nav>
+</footer>
+
+    </div>
+  </body>
+</html>

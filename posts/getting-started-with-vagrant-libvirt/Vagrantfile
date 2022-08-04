@@ -1,0 +1,442 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Set ENV variables
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+
+# Global Variables
+SWITCH_OS = "CumulusCommunity/cumulus-vx"
+SWITCH_VERSION = "3.7.15"
+SERVER_OS= "generic/ubuntu2004"
+
+
+# Build scripts
+$switches_script = <<EOF
+sudo net add hostname $1
+sudo net add vrf mgmt
+sudo net add int swp1-$2
+sudo net commit
+EOF
+
+$servers_script = <<EOF
+sudo ip link set eth1 up
+sudo apt-get install net-tools -y
+sudo apt-get install inetutils-traceroute -y
+sudo apt-get install lldpd -y
+EOF
+
+$mgmt_server_script = <<EOF
+sudo apt-get install net-tools -y
+sudo apt-get install inetutils-traceroute -y
+sudo apt-get install lldpd -y
+EOF
+
+# Spine and Leaf Fabric - including servers
+
+Vagrant.configure("2") do |config|
+
+    config.vm.provider :libvirt do |domain|
+        # Change the default allowed number of interfaces from 8 to 52
+        domain.nic_adapter_count = 52
+        # Change the MGMT network subnet and its default name
+        domain.management_network_name = "clos_fabric_mgmt_network"
+        domain.management_network_address = "172.16.100.0/24"
+
+  end
+
+################################
+###### mgmt-server config ######
+################################
+
+config.vm.define "mgmt-server" do |device|
+    device.vm.hostname = "mgmt-server"
+    device.vm.box = SERVER_OS
+    device.vm.synced_folder ".", "/vagrant", disabled: true
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 4096
+        domain.cpus = 4
+    end
+
+    # No data plane links
+
+    device.vm.provision "shell", inline: $mgmt_server_script
+  end
+
+####################################
+########## spine01 config ##########
+####################################
+
+  config.vm.define "spine01" do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder ".", "/vagrant", disabled: true
+    device.vm.hostname = "spine01"
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link spine01 swp1  ----> leaf01 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.1",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.2",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp1",
+      auto_config: false
+
+    # Link spine01 swp2  ----> leaf02 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.3",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.4",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp2",
+      auto_config: false
+
+    # Link spine01 swp3  ----> leaf03 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.5",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.6",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp3",
+      auto_config: false
+
+    # Link spine01 swp4  ----> leaf04 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.7",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.8",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp4",
+      auto_config: false
+
+    # Call script + provide values for its variables
+    device.vm.provision "shell", inline: $switches_script, :args => ["spine01", "4"]
+
+  end
+
+
+####################################
+########## spine02 config ##########
+####################################
+
+config.vm.define "spine02" do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder ".", "/vagrant", disabled: true
+    device.vm.hostname = "spine02"
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link spine02 swp1  ----> leaf01 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.9",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.10",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp1",
+      auto_config: false
+
+    # Link spine02 swp2  ----> leaf02 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.11",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.12",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp2",
+      auto_config: false
+
+    # Link spine02 swp3  ----> leaf03 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.13",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.14",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp3",
+      auto_config: false
+
+    # Link spine02 swp4  ----> leaf04 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.15",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.16",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp4",
+      auto_config: false
+
+
+    device.vm.provision "shell", inline: $switches_script, :args => ["spine02", "4"]
+
+  end
+
+
+####################################
+########## leaf01 config ##########
+####################################
+
+config.vm.define "leaf01" do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder ".", "/vagrant", disabled: true
+    device.vm.hostname = "leaf01"
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link leaf01 swp1  ----> spine01 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.2",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.1",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp1",
+      auto_config: false
+
+    # Link leaf01 swp2  ----> spine02 swp1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.10",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.9",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp2",
+      auto_config: false
+
+    # Link leaf01 swp3  ----> server01 eth1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.18",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.17",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp3",
+      auto_config: false
+
+
+    device.vm.provision "shell", inline: $switches_script, :args => ["leaf01", "3"]
+
+  end
+
+
+
+
+####################################
+########## leaf02 config ##########
+####################################
+
+config.vm.define "leaf02" do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder ".", "/vagrant", disabled: true
+    device.vm.hostname = "leaf02"
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link leaf02 swp1  ----> spine01 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.4",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.3",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp1",
+      auto_config: false
+
+    # Link leaf02 swp2  ----> spine02 swp2
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.12",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.11",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp2",
+      auto_config: false
+
+
+    device.vm.provision "shell", inline: $switches_script, :args => ["leaf02", "2"]
+
+  end
+
+
+
+####################################
+########## leaf03 config ##########
+####################################
+
+config.vm.define "leaf03" do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder ".", "/vagrant", disabled: true
+    device.vm.hostname = "leaf03"
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link leaf03 swp1  ----> spine01 swp3
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.6",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.5",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp1",
+      auto_config: false
+
+    # Link leaf03 swp2  ----> spine02 swp3
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.14",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.13",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp2",
+      auto_config: false
+
+
+    device.vm.provision "shell", inline: $switches_script, :args => ["leaf03", "2"]
+
+  end
+
+####################################
+########## leaf04 config ##########
+####################################
+
+config.vm.define "leaf04" do |device|
+    device.vm.box = SWITCH_OS
+    device.vm.box_version = SWITCH_VERSION
+    device.vm.synced_folder ".", "/vagrant", disabled: true
+    device.vm.hostname = "leaf04"
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link leaf04 swp1  ----> spine01 swp4
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.8",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.7",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp1",
+      auto_config: false
+
+    # Link leaf04 swp2  ----> spine02 swp4
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.16",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.15",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp2",
+      auto_config: false
+
+    # Link leaf04 swp3  ----> server04 eth1
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.20",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.19",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "swp3",
+      auto_config: false
+
+
+    device.vm.provision "shell", inline: $switches_script, :args => ["leaf04", "3"]
+
+  end
+
+
+####################################
+########## server01 config ##########
+####################################
+
+
+config.vm.define "server01" do |device|
+    device.vm.hostname = "server01"
+    device.vm.box = SERVER_OS
+    device.vm.synced_folder ".", "/vagrant", disabled: true
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link server01 eth1  ----> leaf01 swp3
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.17",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.18",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "eth1",
+      auto_config: false
+
+      device.vm.provision "shell", inline: $servers_script
+  end
+
+
+####################################
+########## server04 config ##########
+####################################
+
+
+config.vm.define "server04" do |device|
+    device.vm.hostname = "server04"
+    device.vm.box = SERVER_OS
+    device.vm.synced_folder ".", "/vagrant", disabled: true
+
+    # VM settings
+    device.vm.provider :libvirt do |domain|
+        domain.memory = 768
+        domain.cpus = 1
+    end
+
+    # Link server01 eth1  ----> leaf04 swp3
+    device.vm.network :private_network,
+      :libvirt__tunnel_type => "udp",
+      :libvirt__tunnel_local_ip => "127.0.100.19",
+      :libvirt__tunnel_local_port => "9999",
+      :libvirt__tunnel_ip => "127.0.100.20",
+      :libvirt__tunnel_port => "9999",
+      :libvirt__iface_name => "eth1",
+      auto_config: false
+
+      device.vm.provision "shell", inline: $servers_script
+  end
+
+
+
+end
