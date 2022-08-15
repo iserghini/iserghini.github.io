@@ -1,0 +1,47 @@
+graph {
+	node [shape=rectangle]
+	spine1 [ordering=out]
+	spine2 [ordering=out]
+	spine3 [ordering=out]
+	spine4 [ordering=out]
+	leaf1 [ordering=in]
+	leaf2 [ordering=in]
+	leaf3 [ordering=in]
+	leaf4 [ordering=in]
+	leaf5 [ordering=in]
+	leaf6 [ordering=in]
+	leaf7 [ordering=in]
+	leaf8 [ordering=in]
+	spine1 -- leaf1
+	spine1 -- leaf2
+	spine1 -- leaf3
+	spine1 -- leaf4
+	spine1 -- leaf5
+	spine1 -- leaf6
+	spine1 -- leaf7
+	spine1 -- leaf8
+	spine2 -- leaf1
+	spine2 -- leaf2
+	spine2 -- leaf3
+	spine2 -- leaf4
+	spine2 -- leaf5
+	spine2 -- leaf6
+	spine2 -- leaf7
+	spine2 -- leaf8
+	spine3 -- leaf1
+	spine3 -- leaf2
+	spine3 -- leaf3
+	spine3 -- leaf4
+	spine3 -- leaf5
+	spine3 -- leaf6
+	spine3 -- leaf7
+	spine3 -- leaf8
+	spine4 -- leaf1
+	spine4 -- leaf2
+	spine4 -- leaf3
+	spine4 -- leaf4
+	spine4 -- leaf5
+	spine4 -- leaf6
+	spine4 -- leaf7
+	spine4 -- leaf8
+}
